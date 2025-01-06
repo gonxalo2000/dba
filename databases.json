@@ -1,0 +1,16 @@
+{
+    "databases": [
+        {
+            "name": "DB1",
+            "host": "host1.example.com",
+            "port": 1521,
+            "sid": "ORCL1"
+        },
+        {
+            "name": "DB2",
+            "host": "host2.example.com",
+            "port": 1521,
+            "sid": "ORCL2"
+        }
+    ]
+  }
