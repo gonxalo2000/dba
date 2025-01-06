@@ -1,13 +1,13 @@
 {
     "databases": [
         {
-            "name": "DB1",
+            "name": "DB01",
             "host": "host1.example.com",
             "port": 1521,
             "sid": "ORCL1"
         },
         {
-            "name": "DB2",
+            "name": "DB02",
             "host": "host2.example.com",
             "port": 1521,
             "sid": "ORCL2"
