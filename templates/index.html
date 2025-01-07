@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schema Search</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Buscar Esquema</h1>
+    <form method="post">
+        <label for="schema_name">Nombre del Esquema:</label>
+        <input type="text" name="schema_name" id="schema_name" required>
+        <button type="submit">Buscar</button>
+    </form>
+    
+    {% if results %}
+    <table>
+        <thead>
+            <tr>
+                <th>Host</th>
+                <th>Service Name</th>
+                <th>Username</th>
+                <th>Status</th>
+                <th>Lock Date</th>
+                <th>Created</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for result in results %}
+            <tr>
+                <td>{{ result['HOST'] if 'HOST' in result else '' }}</td>
+                <td>{{ result['SERVICE_NAME'] if 'SERVICE_NAME' in result else '' }}</td>
+                <td>{{ result['USERNAME'] if 'USERNAME' in result else '-' }}</td>
+                <td>{{ result['STATUS'] if 'STATUS' in result else '-' }}</td>
+                <td>{{ result['LOCK_DATE'] if 'LOCK_DATE' in result else '-' }}</td>
+                <td>{{ result['CREATED'] if 'CREATED' in result else '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</body>
+</html>
