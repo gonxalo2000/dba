@@ -1,16 +1,35 @@
 {
     "databases": [
         {
-            "name": "DB01",
-            "host": "host1.example.com",
+            "name": "TEST11",
+            "host": "oracleprod2",
             "port": 1521,
-            "sid": "ORCL1"
+            "service_name": "test11"
         },
         {
-            "name": "DB02",
-            "host": "host2.example.com",
+            "name": "DESA11",
+            "host": "oracleprod2",
             "port": 1521,
-            "sid": "ORCL2"
+            "service_name": "desa11"
+        },
+        {
+            "name": "TSV",
+            "host": "oracleprod2",
+            "port": 1521,
+            "service_name": "tsv01"
+        },
+        {
+            "name": "PRE14",
+            "host": "oratrac-b-sc",
+            "port": 1530,
+            "service_name": "pre13"
+        }
+        ,
+        {
+            "name": "PRE13",
+            "host": "oratrac-b-sc",
+            "port": 1530,
+            "service_name": "pre13"
         }
     ]
   }

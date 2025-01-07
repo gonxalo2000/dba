@@ -1,72 +1,91 @@
 import cx_Oracle
 from tabulate import tabulate
 import json
+import argparse
 #import pandas as pd
 #import matplotlib.pyplot as plt
 #from matplotlib import style
 
 
-# Para leer el archivo de configuración
-with open('C:\\Users\\Usuario\\OneDrive\\Documentos\\Python\\P1\\db1\\databases.json', 'r') as file:
-    databases = json.load(file)
-    
+
 def check_schema_in_db(db_info, schema_name):
     results = []
     try:
-        dsn = cx_Oracle.makedsn(db_info['host'], db_info['port'], service_name=db_info['sid'])
-        conn = cx_Oracle.connect(user='your_username', password='your_password', dsn=dsn)
+        dsn = cx_Oracle.makedsn(db_info['host'], db_info['port'], service_name=db_info['service_name'])
+        conn = cx_Oracle.connect(user='dbaadmin', password='admin1ora', dsn=dsn)
         cursor = conn.cursor()
         # Ejemplo de consulta para verificar si el esquema existe
-        cursor.execute("SELECT username,created FROM dba_users WHERE username like :schema", {'schema': f'%{schema_name.upper()}%'})
-        #if cursor.fetchone():
-        #    print(f"El esquema {schema_name} existe en la base de datos {db_info['name']}")
-        #else:
-        #    print(f"El esquema {schema_name} no existe en la base de datos {db_info['name']}")
+        cursor.execute("SELECT username, account_status status, lock_date, created FROM dba_users WHERE username like :schema", {'schema': f'%{schema_name.upper()}%'})
         for row in cursor:
             results.append({
-                'Host': db_info['host'],
-                'SID': db_info['sid'],
-                'Username': row[0],
-                'Creation Date': row[1]
+                'HOST': db_info['host'],
+                'SERVICE_NAME': db_info['service_name'],
+                'USERNAME': row[0],
+                'STATUS': row[1],
+                'LOCK_DATE': row[2],
+                'CREATED': row[3],
             })
             
         cursor.close()
         conn.close()
+        
     except cx_Oracle.Error as error:
         print(f'Error al conectar o consultar en {db_info["name"]}: {error}')
     return results
 
-all_results = []
-# Iterar por todas las bases de datos
-for db in databases['databases']:
-    check_schema_in_db(db, "NOMBRE_DEL_ESQUEMA")
-    all_results.append({
-                #'Host': db['host'],
-                #'SID': db['sid'],
-                'Username': "usuario",
-                'Creation Date': "fecha"
+
+def main():
+    # Configuración del parser de argumentos
+    parser = argparse.ArgumentParser(description="Buscar usuarios en bases de datos Oracle.")
+    parser.add_argument('schema_name', help='Nombre del esquema a buscar')
+    #parser.add_argument('-c', '--config', default='dba/databases.json', help='Ruta al archivo de configuración JSON')
+    
+    args = parser.parse_args()
+    
+    # Verificar que schema_name no sea nulo o vacío
+    if not args.schema_name:
+        print("Error: El nombre del esquema no puede estar vacío.")
+        parser.print_help()
+        sys.exit(1)  # Terminar el programa con código de error 1
+
+    # Cargar la configuración
+    #with open('C:\\Users\\Usuario\\OneDrive\\Documentos\\Python\\P1\\db1\\databases.json', 'r') as file:
+    with open('C://DBA//dbaP//dba//databases.json', 'r') as file:
+        databases = json.load(file)
+
+    # Recoger todos los resultados
+    all_results = []
+    for db in databases['databases']:
+        all_results.extend(check_schema_in_db(db, args.schema_name))
+
+    # Ordenar all_results por Host y SERVICE_NAME
+    all_results = sorted(all_results, key=lambda x: (x['HOST'], x['SERVICE_NAME']))
+
+    # Procesar resultados para repetir solo host y service_name cuando cambien
+    formatted_results = []
+    last_host, last_service_name = None, None
+
+    for result in all_results:
+        if result['HOST'] != last_host or result['SERVICE_NAME'] != last_service_name:
+            # Nuevo Host o SERVICE_NAME, imprimimos ambos
+            formatted_results.append(result)
+            last_host, last_service_name = result['HOST'], result['SERVICE_NAME']
+        else:
+            # Mismo Host y service_name, solo actualizamos Username y Creation Date, dejando Host y service_name en blanco
+            formatted_results.append({
+                'HOST': '',
+                'SERVICE_NAME': '',
+                'USERNAME': result['USERNAME'],
+                'STATUS': result['STATUS'],
+                'LOCK_DATE': result['LOCK_DATE'],
+                'CREATED': result['CREATED']
             })
 
-
-if all_results:
-    # Mostrando resultados en forma de tabla
-    print(tabulate(all_results, headers="keys", tablefmt="grid"))
-else:
-    print("No se encontraron resultados.")    
+    # Mostrar resultados en forma de tabla
+    if formatted_results:
+        print(tabulate(formatted_results, headers="keys", tablefmt="grid"))
+    else:
+        print("No se encontraron resultados.")
         
-
-
-# Para escribir en el archivo de configuración (agregar o quitar bases de datos)
-def update_databases(new_databases):
-    with open('databases.json', 'w') as file:
-        json.dump({"databases": new_databases}, file, indent=4)
-
-# Ejemplo de cómo agregar una nueva base de datos
-new_db = {
-    "name": "DB3",
-    "host": "host3.example.com",
-    "port": 1521,
-    "sid": "ORCL3"
-}
-#databases["databases"].append(new_db)
-#update_databases(databases["databases"])
+if __name__ == "__main__":
+    main()        
