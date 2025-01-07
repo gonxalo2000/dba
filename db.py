@@ -2,6 +2,7 @@ import cx_Oracle
 from tabulate import tabulate
 import json
 import argparse
+import os
 #import pandas as pd
 #import matplotlib.pyplot as plt
 #from matplotlib import style
@@ -49,8 +50,11 @@ def main():
         sys.exit(1)  # Terminar el programa con código de error 1
 
     # Cargar la configuración
-    #with open('C:\\Users\\Usuario\\OneDrive\\Documentos\\Python\\P1\\db1\\databases.json', 'r') as file:
-    with open('C://DBA//dbaP//dba//databases.json', 'r') as file:
+    script_dir = os.path.dirname(__file__)
+    # Construye la ruta al archivo relativo al directorio del script
+    rel_path = "databases.json"
+    abs_file_path = os.path.join(script_dir, rel_path)
+    with open(abs_file_path, 'r') as file:
         databases = json.load(file)
 
     # Recoger todos los resultados
