@@ -138,7 +138,7 @@ def format_results(all_results):
 def main():
     
    # Configuración del parser de argumentos
-    parser = argparse.ArgumentParser(description="Buscar usuarios u objetos en bases de datos Oracle.", 
+    parser = argparse.ArgumentParser(description="Busca usuarios y sus objetos (si se especifica el parametro) en las bases de datos Oracle.", 
                                     usage="%(prog)s [-h] schema_name [object_name]")
     parser.add_argument('schema_name', help='Nombre del esquema a buscar (requerido)')
     parser.add_argument('object_name', nargs='?', default=None, help='Nombre del objeto a buscar (opcional)')
