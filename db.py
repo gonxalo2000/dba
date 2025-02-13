@@ -119,12 +119,18 @@ def main():
     # Configuración del parser de argumentos
     parser = argparse.ArgumentParser(
         description="Ejecuta una consulta SQL en bases de datos Oracle.",
-        usage="%(prog)s [-h] sql_file [csv_file]"
+        usage="%(prog)s [-h] bases jsonsql_file [csv_file]"
     )
+    parser.add_argument('bases_file', help='Ruta al archivo JSON con las bases de datos donde ejecutar (requerido)')
     parser.add_argument('sql_file', help='Ruta al archivo SQL con la consulta a ejecutar (requerido)')
     parser.add_argument('csv_file', nargs='?', default=None, help='Ruta al archivo CSV donde se guardarán los resultados (opcional)')
     
     args = parser.parse_args()
+
+    # Validar que el archivo JSON existe
+    if not os.path.exists(args.bases_file):
+        print(f"Error: El archivo de bases de datos '{args.bases_file}' no existe.")
+        sys.exit(1)
 
     # Validar que el archivo SQL existe
     if not os.path.exists(args.sql_file):
@@ -137,7 +143,7 @@ def main():
 
     # Cargar la configuración de las bases de datos
     script_dir = os.path.dirname(__file__)
-    rel_path = "databases.json"
+    rel_path = args.bases_file
     abs_file_path = os.path.join(script_dir, rel_path)
     with open(abs_file_path, 'r') as file:
         databases = json.load(file)
