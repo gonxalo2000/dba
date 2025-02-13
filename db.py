@@ -112,7 +112,6 @@ def save_results_to_csv(results, csv_file):
             writer = csv.DictWriter(file, fieldnames=fieldnames)
             writer.writeheader()  # Escribir la cabecera
             writer.writerows(results)  # Escribir las filas
-        #print(f"Resultados guardados en {csv_file}")
     except Exception as e:
         print(f"Error al guardar el archivo CSV: {e}")
 
@@ -168,52 +167,3 @@ def main():
 if __name__ == "__main__":
     main()
     
-# def main():
-    
-    
-#    # Configuración del parser de argumentos
-#     parser = argparse.ArgumentParser(description="Busca usuarios y sus objetos (si se especifica el parametro) en las bases de datos Oracle.", 
-#                                     usage="%(prog)s [-h] schema_name [object_name]")
-#     parser.add_argument('schema_name', help='Nombre del esquema a buscar (requerido)')
-#     parser.add_argument('object_name', nargs='?', default=None, help='Nombre del objeto a buscar (opcional)')
-#     parser.add_argument('-o', '--object_name', dest='object_name', help='Nombre del objeto a buscar (opcional)')
-
-#     args = parser.parse_args()
-
-#     # Verificación de que se ha proporcionado un esquema
-#     if args.schema_name is None:
-#         print("Error: Falta especificar un nombre de esquema a consultar.")
-#         parser.print_help()
-#         sys.exit(1)
-        
-#     # Cargar la configuración
-#     script_dir = os.path.dirname(__file__)
-#     # Construye la ruta al archivo relativo al directorio del script
-#     rel_path = "databases.json"
-#     abs_file_path = os.path.join(script_dir, rel_path)
-#     with open(abs_file_path, 'r') as file:
-#         databases = json.load(file)
-
-#     # Recoger todos los resultados
-#     all_results = []
-#     # Si no se pasa nomnre de objeto, se consultan los schemas
-#     if args.object_name is None:
-#         for db in databases['databases']:
-#             all_results.extend(list_schema_info(db, args.schema_name))
-#     else:
-#         for db in databases['databases']:
-#             all_results.extend(list_schema_obj(db, args.schema_name, args.object_name))
-        
-#     # Ordenar all_results por Host y SERVICE_NAME
-#     all_results = sorted(all_results, key=lambda x: (x['HOST'], x['SERVICE_NAME']))
-#     # Elimina hosts y service_name duplicados para imprimir
-#     formatted_results = format_results(all_results)
-    
-#     # Mostrar resultados en forma de tabla
-#     if formatted_results:
-#         print(tabulate(formatted_results, headers="keys", tablefmt="grid"))
-#     else:
-#         print("No se encontraron resultados.")
-        
-# if __name__ == "__main__":
-#     main()        
