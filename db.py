@@ -4,7 +4,7 @@ import json
 import argparse
 import os
 import sys
-
+import csv
 
 
 def create_conn (host, port, service_name):
@@ -76,74 +76,6 @@ def execute_custom_query(db_info, query):
     return results
 
         
-def list_schema_obj(db_info, schema_name, obj_name):
-    results = []
-    cursor = get_connection(db_info['host'], db_info['port'], db_info['service_name'])
-    if cursor:
-        try:
-            # Obtener la versión de la instancia
-            cursor.execute("select version from v$instance")
-            version = cursor.fetchone()[0]
-            
-            # Consultar objetos del esquema
-            cursor.execute("""
-                SELECT owner,object_name, object_type, created, status 
-                FROM dba_objects 
-                WHERE owner LIKE :schema 
-                AND object_name LIKE :obj 
-                ORDER BY object_name
-                """, {'schema': f'{schema_name.upper()}', 'obj': f'{obj_name.upper()}'})
-
-            # Obtener los nombres de las columnas
-            columns = [desc[0] for desc in cursor.description]
-            for row in cursor:
-                dynamic_result = dict(zip(columns, row))
-                # Asegurarse de que HOST, SERVICE_NAME y VERSION sean las primeras entradas
-                tupla = {
-                    'HOST': db_info['host'],
-                    'SERVICE_NAME': db_info['service_name'],
-                    'VERSION': version,
-                }
-                # Agregar las columnas dinámicas del cursor
-                tupla.update(dynamic_result)
-                results.append(tupla)
-        finally:
-            close_connection(cursor)
-    return results
-
-
-def list_schema_info(db_info, schema_name):
-    results = []
-    cursor = get_connection(db_info['host'], db_info['port'], db_info['service_name'])
-    if cursor:
-        try:
-            # Obtener la versión de la instancia
-            cursor.execute("select version from v$instance")
-            version = cursor.fetchone()[0]
-            
-            # Consultar esquemas
-            cursor.execute("""
-                           SELECT username, account_status status, lock_date, created 
-                           FROM dba_users
-                           WHERE username like :schema
-                           """, {'schema': f'{schema_name.upper()}'})
-            
-             # Obtener los nombres de las columnas
-            columns = [desc[0] for desc in cursor.description]
-            for row in cursor:
-                dynamic_result = dict(zip(columns, row))
-                # Asegurarse de que HOST, SERVICE_NAME y VERSION sean las primeras entradas
-                tupla = {
-                    'HOST': db_info['host'],
-                    'SERVICE_NAME': db_info['service_name'],
-                    'VERSION': version,
-                }
-                # Agregar las columnas dinámicas del cursor
-                tupla.update(dynamic_result)
-                results.append(tupla)
-        finally:
-            close_connection(cursor)
-    return results
 
 def format_results(all_results):
     formatted_results = []
@@ -164,21 +96,35 @@ def format_results(all_results):
     
     return formatted_results
 
+def save_results_to_csv(results, csv_file):
+    """
+    Guarda los resultados en un archivo CSV.
+    """
+    if not results:
+        print("No hay resultados para guardar.")
+        return
 
-import argparse
-import os
-import json
-import sys
-from tabulate import tabulate
+    # Obtener las claves del primer resultado como nombres de columnas
+    fieldnames = results[0].keys()
+
+    try:
+        with open(csv_file, mode='w', newline='', encoding='utf-8') as file:
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writeheader()  # Escribir la cabecera
+            writer.writerows(results)  # Escribir las filas
+        #print(f"Resultados guardados en {csv_file}")
+    except Exception as e:
+        print(f"Error al guardar el archivo CSV: {e}")
 
 def main():
     # Configuración del parser de argumentos
     parser = argparse.ArgumentParser(
         description="Ejecuta una consulta SQL en bases de datos Oracle.",
-        usage="%(prog)s [-h] sql_file"
+        usage="%(prog)s [-h] sql_file [csv_file]"
     )
     parser.add_argument('sql_file', help='Ruta al archivo SQL con la consulta a ejecutar (requerido)')
-
+    parser.add_argument('csv_file', nargs='?', default=None, help='Ruta al archivo CSV donde se guardarán los resultados (opcional)')
+    
     args = parser.parse_args()
 
     # Validar que el archivo SQL existe
@@ -210,11 +156,15 @@ def main():
     formatted_results = format_results(all_results)
 
     # Mostrar resultados en forma de tabla
-    if formatted_results:
+    if formatted_results and not args.csv_file:
         print(tabulate(formatted_results, headers="keys", tablefmt="grid"))
+    elif args.csv_file:
+        print("CSV generado correctamente.")
     else:
         print("No se encontraron resultados.")
-
+    if args.csv_file:
+        save_results_to_csv(all_results, args.csv_file)
+        
 if __name__ == "__main__":
     main()
     
