@@ -45,6 +45,36 @@ def close_connection(cursor):
             connection.close()
         except cx_Oracle.Error as error:
             print(f'Error al cerrar la conexión: {error}')    
+
+def execute_custom_query(db_info, query):
+    results = []
+    cursor = get_connection(db_info['host'], db_info['port'], db_info['service_name'])
+    if cursor:
+        try:
+            # Obtener la versión de la instancia
+            cursor.execute("select version from v$instance")
+            version = cursor.fetchone()[0]
+            
+            # Ejecutar la consulta personalizada
+            cursor.execute(query)
+            if cursor.description:
+                # Obtener los nombres de las columnas
+                columns = [desc[0] for desc in cursor.description]
+                for row in cursor:
+                    dynamic_result = dict(zip(columns, row))
+                    # Asegurarse de que HOST, SERVICE_NAME y VERSION sean las primeras entradas
+                    tupla = {
+                        'HOST': db_info['host'],
+                        'SERVICE_NAME': db_info['service_name'],
+                        'VERSION': version,
+                    }
+                    # Agregar las columnas dinámicas del cursor
+                    tupla.update(dynamic_result)
+                    results.append(tupla)
+        finally:
+            close_connection(cursor)
+    return results
+
         
 def list_schema_obj(db_info, schema_name, obj_name):
     results = []
@@ -135,26 +165,33 @@ def format_results(all_results):
     return formatted_results
 
 
+import argparse
+import os
+import json
+import sys
+from tabulate import tabulate
+
 def main():
-    
-   # Configuración del parser de argumentos
-    parser = argparse.ArgumentParser(description="Busca usuarios y sus objetos (si se especifica el parametro) en las bases de datos Oracle.", 
-                                    usage="%(prog)s [-h] schema_name [object_name]")
-    parser.add_argument('schema_name', help='Nombre del esquema a buscar (requerido)')
-    parser.add_argument('object_name', nargs='?', default=None, help='Nombre del objeto a buscar (opcional)')
-    parser.add_argument('-o', '--object_name', dest='object_name', help='Nombre del objeto a buscar (opcional)')
+    # Configuración del parser de argumentos
+    parser = argparse.ArgumentParser(
+        description="Ejecuta una consulta SQL en bases de datos Oracle.",
+        usage="%(prog)s [-h] sql_file"
+    )
+    parser.add_argument('sql_file', help='Ruta al archivo SQL con la consulta a ejecutar (requerido)')
 
     args = parser.parse_args()
 
-    # Verificación de que se ha proporcionado un esquema
-    if args.schema_name is None:
-        print("Error: Falta especificar un nombre de esquema a consultar.")
-        parser.print_help()
+    # Validar que el archivo SQL existe
+    if not os.path.exists(args.sql_file):
+        print(f"Error: El archivo SQL '{args.sql_file}' no existe.")
         sys.exit(1)
-        
-    # Cargar la configuración
+
+    # Leer el contenido del archivo SQL
+    with open(args.sql_file, 'r') as file:
+        query = file.read()
+
+    # Cargar la configuración de las bases de datos
     script_dir = os.path.dirname(__file__)
-    # Construye la ruta al archivo relativo al directorio del script
     rel_path = "databases.json"
     abs_file_path = os.path.join(script_dir, rel_path)
     with open(abs_file_path, 'r') as file:
@@ -162,24 +199,71 @@ def main():
 
     # Recoger todos los resultados
     all_results = []
-    # Si no se pasa nomnre de objeto, se consultan los schemas
-    if args.object_name is None:
-        for db in databases['databases']:
-            all_results.extend(list_schema_info(db, args.schema_name))
-    else:
-        for db in databases['databases']:
-            all_results.extend(list_schema_obj(db, args.schema_name, args.object_name))
-        
+    for db in databases['databases']:
+        results = execute_custom_query(db, query)
+        all_results.extend(results)
+
     # Ordenar all_results por Host y SERVICE_NAME
     all_results = sorted(all_results, key=lambda x: (x['HOST'], x['SERVICE_NAME']))
+
     # Elimina hosts y service_name duplicados para imprimir
     formatted_results = format_results(all_results)
-    
+
     # Mostrar resultados en forma de tabla
     if formatted_results:
         print(tabulate(formatted_results, headers="keys", tablefmt="grid"))
     else:
         print("No se encontraron resultados.")
-        
+
 if __name__ == "__main__":
-    main()        
+    main()
+    
+# def main():
+    
+    
+#    # Configuración del parser de argumentos
+#     parser = argparse.ArgumentParser(description="Busca usuarios y sus objetos (si se especifica el parametro) en las bases de datos Oracle.", 
+#                                     usage="%(prog)s [-h] schema_name [object_name]")
+#     parser.add_argument('schema_name', help='Nombre del esquema a buscar (requerido)')
+#     parser.add_argument('object_name', nargs='?', default=None, help='Nombre del objeto a buscar (opcional)')
+#     parser.add_argument('-o', '--object_name', dest='object_name', help='Nombre del objeto a buscar (opcional)')
+
+#     args = parser.parse_args()
+
+#     # Verificación de que se ha proporcionado un esquema
+#     if args.schema_name is None:
+#         print("Error: Falta especificar un nombre de esquema a consultar.")
+#         parser.print_help()
+#         sys.exit(1)
+        
+#     # Cargar la configuración
+#     script_dir = os.path.dirname(__file__)
+#     # Construye la ruta al archivo relativo al directorio del script
+#     rel_path = "databases.json"
+#     abs_file_path = os.path.join(script_dir, rel_path)
+#     with open(abs_file_path, 'r') as file:
+#         databases = json.load(file)
+
+#     # Recoger todos los resultados
+#     all_results = []
+#     # Si no se pasa nomnre de objeto, se consultan los schemas
+#     if args.object_name is None:
+#         for db in databases['databases']:
+#             all_results.extend(list_schema_info(db, args.schema_name))
+#     else:
+#         for db in databases['databases']:
+#             all_results.extend(list_schema_obj(db, args.schema_name, args.object_name))
+        
+#     # Ordenar all_results por Host y SERVICE_NAME
+#     all_results = sorted(all_results, key=lambda x: (x['HOST'], x['SERVICE_NAME']))
+#     # Elimina hosts y service_name duplicados para imprimir
+#     formatted_results = format_results(all_results)
+    
+#     # Mostrar resultados en forma de tabla
+#     if formatted_results:
+#         print(tabulate(formatted_results, headers="keys", tablefmt="grid"))
+#     else:
+#         print("No se encontraron resultados.")
+        
+# if __name__ == "__main__":
+#     main()        
